@@ -1,0 +1,18 @@
+package com.googlecode.javaewah.aggregation;
+
+/*
+ * Copyright 2009-2016, Daniel Lemire, Cliff Moon, David McIntosh, Robert Becho, Google Inc., Veronika Zenz, Owen Kaser, Gregory Ssi-Yan-Kai, Rory Graves
+ * Licensed under the Apache License, Version 2.0.
+ */
+
+/**
+ * Boolean operation applied by the buffered aggregation state machines.
+ */
+public enum AggregateOp {
+    /** bitwise OR */
+    OR,
+    /** bitwise XOR */
+    XOR,
+    /** bitwise AND */
+    AND
+}

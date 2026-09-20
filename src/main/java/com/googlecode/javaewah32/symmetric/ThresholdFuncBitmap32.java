@@ -1,5 +1,7 @@
 package com.googlecode.javaewah32.symmetric;
 
+import com.googlecode.javaewah.aggregation.BitmapStorageSink32;
+import com.googlecode.javaewah.aggregation.WordSink;
 import com.googlecode.javaewah32.BitmapStorage32;
 
 import java.util.Arrays;
@@ -7,12 +9,16 @@ import java.util.Arrays;
 /**
  * A threshold Boolean function returns true if the number of true values exceed
  * a threshold. It is a symmetric Boolean function.
- * 
+ *
  * This class implements an algorithm described in the following paper:
- * 
+ *
  * Owen Kaser and Daniel Lemire, Compressed bitmap indexes: beyond unions and intersections
  * <a href="http://arxiv.org/abs/1402.4466">http://arxiv.org/abs/1402.4466</a>
- * 
+ *
+ * The per-run decision skeleton is shared with the 64-bit variant through
+ * {@link #emit(WordSink, int, int)}; only the primitive 32-bit word operations
+ * remain in this class.
+ *
  * It is not thread safe: you should use one object per thread.
  *
  * @author Daniel Lemire
@@ -20,7 +26,8 @@ import java.util.Arrays;
  * href="http://en.wikipedia.org/wiki/Symmetric_Boolean_function">http://en.wikipedia.org/wiki/Symmetric_Boolean_function</a>
  * @since 0.8.2
  */
-public final class ThresholdFuncBitmap32 extends UpdateableBitmapFunction32 {
+public final class ThresholdFuncBitmap32
+        extends UpdateableBitmapFunction32 {
     private final int min;
     private int[] buffers;
     private int bufferUsed;
@@ -40,8 +47,15 @@ public final class ThresholdFuncBitmap32 extends UpdateableBitmapFunction32 {
     }
 
     @Override
-    public void dispatch(BitmapStorage32 out, int runBegin, int runend) {
-        final int runLength = runend - runBegin;
+    public void dispatch(final BitmapStorage32 out, final int runBegin,
+                         final int runend) {
+        emit(new BitmapStorageSink32(out), runBegin, runend);
+    }
+
+    @Override
+    public void emit(final WordSink out, final int runBegin,
+                     final int runEnd) {
+        final int runLength = runEnd - runBegin;
         if (this.hammingWeight >= this.min) {
             out.addStreamOfEmptyWords(true, runLength);
         } else if (this.litWeight + this.hammingWeight < this.min) {
@@ -56,8 +70,7 @@ public final class ThresholdFuncBitmap32 extends UpdateableBitmapFunction32 {
             if (this.bufferUsed == deficit) {
                 andLiterals(out, runBegin, runLength);
             } else {
-                generalLiterals(deficit, out, runBegin,
-                        runLength);
+                generalLiterals(deficit, out, runBegin, runLength);
             }
         }
     }
@@ -111,34 +124,39 @@ public final class ThresholdFuncBitmap32 extends UpdateableBitmapFunction32 {
             return threshold2buf(t, buf, bufUsed);
     }
 
-    private void orLiterals(final BitmapStorage32 out, final int runBegin, final int runLength) {
+    private void orLiterals(final WordSink out, final int runBegin,
+                            final int runLength) {
         for (int i = 0; i < runLength; ++i) {
             int w = 0;
-            for (EWAHPointer32 r : this.getLiterals()) {
-                w |= r.iterator.getLiteralWordAt(i + runBegin - r.beginOfRun());
+            for (final EWAHPointer32 r : this.getLiterals()) {
+                w |= r.iterator.getLiteralWordAt(
+                        i + runBegin - r.beginOfRun());
             }
             out.addWord(w);
         }
     }
 
-    private void andLiterals(final BitmapStorage32 out, final int runBegin, final int runLength) {
+    private void andLiterals(final WordSink out, final int runBegin,
+                             final int runLength) {
         for (int i = 0; i < runLength; ++i) {
             int w = ~0;
-            for (EWAHPointer32 r : this.getLiterals()) {
-                w &= r.iterator.getLiteralWordAt(i + runBegin - r.beginOfRun());
+            for (final EWAHPointer32 r : this.getLiterals()) {
+                w &= r.iterator.getLiteralWordAt(
+                        i + runBegin - r.beginOfRun());
             }
             out.addWord(w);
         }
     }
 
-    private void generalLiterals(final int deficit, final BitmapStorage32 out,
+    private void generalLiterals(final int deficit, final WordSink out,
                                  final int runBegin, final int runLength) {
         if (this.bufferUsed > this.buffers.length)
             this.buffers = Arrays.copyOf(this.buffers, 2 * this.bufferUsed);
         for (int i = 0; i < runLength; ++i) {
             int p = 0;
-            for (EWAHPointer32 r : this.getLiterals()) {
-                this.buffers[p++] = r.iterator.getLiteralWordAt(i + runBegin - r.beginOfRun());
+            for (final EWAHPointer32 r : this.getLiterals()) {
+                this.buffers[p++] = r.iterator.getLiteralWordAt(
+                        i + runBegin - r.beginOfRun());
             }
             out.addWord(threshold4(deficit, this.buffers, this.bufferUsed));
         }

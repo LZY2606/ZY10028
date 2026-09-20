@@ -1,0 +1,121 @@
+Benchmark                                              (ways)  Mode  Cnt         Score      Error   Units
+AggregationBenchmark.and32                                  2  avgt   24      1040.450 ±   15.125   us/op
+AggregationBenchmark.and32:gc.alloc.rate                    2  avgt   24      1492.520 ±   21.104  MB/sec
+AggregationBenchmark.and32:gc.alloc.rate.norm               2  avgt   24   1627967.249 ±    0.111    B/op
+AggregationBenchmark.and32:gc.count                         2  avgt   24       112.000             counts
+AggregationBenchmark.and32:gc.time                          2  avgt   24        55.000                 ms
+AggregationBenchmark.and32                                 20  avgt   24      5898.130 ±   28.799   us/op
+AggregationBenchmark.and32:gc.alloc.rate                   20  avgt   24       546.123 ±    2.665  MB/sec
+AggregationBenchmark.and32:gc.alloc.rate.norm              20  avgt   24   3377848.848 ±    0.216    B/op
+AggregationBenchmark.and32:gc.count                        20  avgt   24       164.000             counts
+AggregationBenchmark.and32:gc.time                         20  avgt   24        35.000                 ms
+AggregationBenchmark.and64                                  2  avgt   24       516.658 ±    7.159   us/op
+AggregationBenchmark.and64:gc.alloc.rate                    2  avgt   24      3335.145 ±   45.733  MB/sec
+AggregationBenchmark.and64:gc.alloc.rate.norm               2  avgt   24   1806467.584 ±    0.051    B/op
+AggregationBenchmark.and64:gc.count                         2  avgt   24       252.000             counts
+AggregationBenchmark.and64:gc.time                          2  avgt   24       118.000                 ms
+AggregationBenchmark.and64                                 20  avgt   24      2785.964 ±   36.989   us/op
+AggregationBenchmark.and64:gc.alloc.rate                   20  avgt   24      1278.689 ±   16.779  MB/sec
+AggregationBenchmark.and64:gc.alloc.rate.norm              20  avgt   24   3734803.320 ±    0.261    B/op
+AggregationBenchmark.and64:gc.count                        20  avgt   24       399.000             counts
+AggregationBenchmark.and64:gc.time                         20  avgt   24        92.000                 ms
+AggregationBenchmark.bufferedAnd32                          2  avgt   24      1047.802 ±    6.028   us/op
+AggregationBenchmark.bufferedAnd32:gc.alloc.rate            2  avgt   24      1617.656 ±    9.271  MB/sec
+AggregationBenchmark.bufferedAnd32:gc.alloc.rate.norm       2  avgt   24   1777415.293 ±    0.054    B/op
+AggregationBenchmark.bufferedAnd32:gc.count                 2  avgt   24       120.000             counts
+AggregationBenchmark.bufferedAnd32:gc.time                  2  avgt   24        61.000                 ms
+AggregationBenchmark.bufferedAnd32                         20  avgt   24      4401.517 ±   58.218   us/op
+AggregationBenchmark.bufferedAnd32:gc.alloc.rate           20  avgt   24       307.285 ±    4.098  MB/sec
+AggregationBenchmark.bufferedAnd32:gc.alloc.rate.norm      20  avgt   24   1417993.196 ±  189.460    B/op
+AggregationBenchmark.bufferedAnd32:gc.count                20  avgt   24        86.000             counts
+AggregationBenchmark.bufferedAnd32:gc.time                 20  avgt   24        27.000                 ms
+AggregationBenchmark.bufferedAnd64                          2  avgt   24       542.667 ±   10.244   us/op
+AggregationBenchmark.bufferedAnd64:gc.alloc.rate            2  avgt   24      3681.873 ±   66.837  MB/sec
+AggregationBenchmark.bufferedAnd64:gc.alloc.rate.norm       2  avgt   24   2094163.772 ±    0.072    B/op
+AggregationBenchmark.bufferedAnd64:gc.count                 2  avgt   24       264.000             counts
+AggregationBenchmark.bufferedAnd64:gc.time                  2  avgt   24       139.000                 ms
+AggregationBenchmark.bufferedAnd64                         20  avgt   24      1466.659 ±  113.330   us/op
+AggregationBenchmark.bufferedAnd64:gc.alloc.rate           20  avgt   24      1792.949 ±  121.746  MB/sec
+AggregationBenchmark.bufferedAnd64:gc.alloc.rate.norm      20  avgt   24   2734346.197 ±    0.803    B/op
+AggregationBenchmark.bufferedAnd64:gc.count                20  avgt   24       560.000             counts
+AggregationBenchmark.bufferedAnd64:gc.time                 20  avgt   24       147.000                 ms
+AggregationBenchmark.bufferedOr32                           2  avgt   24      1127.892 ±   96.920   us/op
+AggregationBenchmark.bufferedOr32:gc.alloc.rate             2  avgt   24      2602.155 ±  180.908  MB/sec
+AggregationBenchmark.bufferedOr32:gc.alloc.rate.norm        2  avgt   24   3049607.838 ±    0.653    B/op
+AggregationBenchmark.bufferedOr32:gc.count                  2  avgt   24       196.000             counts
+AggregationBenchmark.bufferedOr32:gc.time                   2  avgt   24       130.000                 ms
+AggregationBenchmark.bufferedOr32                          20  avgt   24      4176.367 ±   29.463   us/op
+AggregationBenchmark.bufferedOr32:gc.alloc.rate            20  avgt   24       364.350 ±    2.535  MB/sec
+AggregationBenchmark.bufferedOr32:gc.alloc.rate.norm       20  avgt   24   1595644.948 ±    0.211    B/op
+AggregationBenchmark.bufferedOr32:gc.count                 20  avgt   24       104.000             counts
+AggregationBenchmark.bufferedOr32:gc.time                  20  avgt   24        27.000                 ms
+AggregationBenchmark.bufferedOr64                           2  avgt   24       622.099 ±    2.550   us/op
+AggregationBenchmark.bufferedOr64:gc.alloc.rate             2  avgt   24      4899.365 ±   20.066  MB/sec
+AggregationBenchmark.bufferedOr64:gc.alloc.rate.norm        2  avgt   24   3196196.319 ±    0.020    B/op
+AggregationBenchmark.bufferedOr64:gc.count                  2  avgt   24       331.000             counts
+AggregationBenchmark.bufferedOr64:gc.time                   2  avgt   24       171.000                 ms
+AggregationBenchmark.bufferedOr64                          20  avgt   24      1462.565 ±   13.412   us/op
+AggregationBenchmark.bufferedOr64:gc.alloc.rate            20  avgt   24      1083.169 ±    9.932  MB/sec
+AggregationBenchmark.bufferedOr64:gc.alloc.rate.norm       20  avgt   24   1661146.165 ±    0.112    B/op
+AggregationBenchmark.bufferedOr64:gc.count                 20  avgt   24       337.000             counts
+AggregationBenchmark.bufferedOr64:gc.time                  20  avgt   24        65.000                 ms
+AggregationBenchmark.bufferedXor32                          2  avgt   24      1148.023 ±   28.863   us/op
+AggregationBenchmark.bufferedXor32:gc.alloc.rate            2  avgt   24      2140.639 ±   52.639  MB/sec
+AggregationBenchmark.bufferedXor32:gc.alloc.rate.norm       2  avgt   24   2574615.993 ±    0.202    B/op
+AggregationBenchmark.bufferedXor32:gc.count                 2  avgt   24       161.000             counts
+AggregationBenchmark.bufferedXor32:gc.time                  2  avgt   24        87.000                 ms
+AggregationBenchmark.bufferedXor32                         20  avgt   24      4613.382 ±   66.180   us/op
+AggregationBenchmark.bufferedXor32:gc.alloc.rate           20  avgt   24       465.719 ±    6.630  MB/sec
+AggregationBenchmark.bufferedXor32:gc.alloc.rate.norm      20  avgt   24   2252447.987 ±    0.482    B/op
+AggregationBenchmark.bufferedXor32:gc.count                20  avgt   24       137.000             counts
+AggregationBenchmark.bufferedXor32:gc.time                 20  avgt   24        34.000                 ms
+AggregationBenchmark.bufferedXor64                          2  avgt   24       617.516 ±    2.800   us/op
+AggregationBenchmark.bufferedXor64:gc.alloc.rate            2  avgt   24      5695.269 ±   25.747  MB/sec
+AggregationBenchmark.bufferedXor64:gc.alloc.rate.norm       2  avgt   24   3688036.290 ±    0.023    B/op
+AggregationBenchmark.bufferedXor64:gc.count                 2  avgt   24       428.000             counts
+AggregationBenchmark.bufferedXor64:gc.time                  2  avgt   24       214.000                 ms
+AggregationBenchmark.bufferedXor64                         20  avgt   24      1511.104 ±    8.062   us/op
+AggregationBenchmark.bufferedXor64:gc.alloc.rate           20  avgt   24      1462.460 ±    7.721  MB/sec
+AggregationBenchmark.bufferedXor64:gc.alloc.rate.norm      20  avgt   24   2317466.526 ±    0.069    B/op
+AggregationBenchmark.bufferedXor64:gc.count                20  avgt   24       453.000             counts
+AggregationBenchmark.bufferedXor64:gc.time                 20  avgt   24        88.000                 ms
+AggregationBenchmark.or32                                   2  avgt   24       963.466 ±    6.943   us/op
+AggregationBenchmark.or32:gc.alloc.rate                     2  avgt   24      1550.277 ±   11.209  MB/sec
+AggregationBenchmark.or32:gc.alloc.rate.norm                2  avgt   24   1566222.715 ±    0.069    B/op
+AggregationBenchmark.or32:gc.count                          2  avgt   24       118.000             counts
+AggregationBenchmark.or32:gc.time                           2  avgt   24        56.000                 ms
+AggregationBenchmark.or32                                  20  avgt   24      9790.687 ±   79.362   us/op
+AggregationBenchmark.or32:gc.alloc.rate                    20  avgt   24      2231.249 ±   18.209  MB/sec
+AggregationBenchmark.or32:gc.alloc.rate.norm               20  avgt   24  22906827.722 ±    0.570    B/op
+AggregationBenchmark.or32:gc.count                         20  avgt   24       696.000             counts
+AggregationBenchmark.or32:gc.time                          20  avgt   24       127.000                 ms
+AggregationBenchmark.or64                                   2  avgt   24       444.833 ±    2.474   us/op
+AggregationBenchmark.or64:gc.alloc.rate                     2  avgt   24      2720.952 ±   15.169  MB/sec
+AggregationBenchmark.or64:gc.alloc.rate.norm                2  avgt   24   1269235.093 ±    0.019    B/op
+AggregationBenchmark.or64:gc.count                          2  avgt   24       206.000             counts
+AggregationBenchmark.or64:gc.time                           2  avgt   24        95.000                 ms
+AggregationBenchmark.or64                                  20  avgt   24      4245.621 ±  126.451   us/op
+AggregationBenchmark.or64:gc.alloc.rate                    20  avgt   24      5409.937 ±  157.241  MB/sec
+AggregationBenchmark.or64:gc.alloc.rate.norm               20  avgt   24  24053125.438 ±    0.877    B/op
+AggregationBenchmark.or64:gc.count                         20  avgt   24      1126.000             counts
+AggregationBenchmark.or64:gc.time                          20  avgt   24       203.000                 ms
+AggregationBenchmark.xor32                                  2  avgt   24      1095.857 ±    7.657   us/op
+AggregationBenchmark.xor32:gc.alloc.rate                    2  avgt   24      1362.975 ±    9.467  MB/sec
+AggregationBenchmark.xor32:gc.alloc.rate.norm               2  avgt   24   1566223.626 ±    0.080    B/op
+AggregationBenchmark.xor32:gc.count                         2  avgt   24       105.000             counts
+AggregationBenchmark.xor32:gc.time                          2  avgt   24        52.000                 ms
+AggregationBenchmark.xor32                                 20  avgt   24     20095.481 ± 1753.241   us/op
+AggregationBenchmark.xor32:gc.alloc.rate                   20  avgt   24      1477.677 ±  119.902  MB/sec
+AggregationBenchmark.xor32:gc.alloc.rate.norm              20  avgt   24  30783730.145 ±   11.958    B/op
+AggregationBenchmark.xor32:gc.count                        20  avgt   24       463.000             counts
+AggregationBenchmark.xor32:gc.time                         20  avgt   24        88.000                 ms
+AggregationBenchmark.xor64                                  2  avgt   24       507.496 ±    2.921   us/op
+AggregationBenchmark.xor64:gc.alloc.rate                    2  avgt   24      3050.340 ±   17.500  MB/sec
+AggregationBenchmark.xor64:gc.alloc.rate.norm               2  avgt   24   1623315.523 ±    0.021    B/op
+AggregationBenchmark.xor64:gc.count                         2  avgt   24       231.000             counts
+AggregationBenchmark.xor64:gc.time                          2  avgt   24       108.000                 ms
+AggregationBenchmark.xor64                                 20  avgt   24      8677.161 ±  111.853   us/op
+AggregationBenchmark.xor64:gc.alloc.rate                   20  avgt   24      3605.232 ±   45.964  MB/sec
+AggregationBenchmark.xor64:gc.alloc.rate.norm              20  avgt   24  32797748.059 ±    0.774    B/op
+AggregationBenchmark.xor64:gc.count                        20  avgt   24      1003.000             counts
+AggregationBenchmark.xor64:gc.time                         20  avgt   24       179.000                 ms

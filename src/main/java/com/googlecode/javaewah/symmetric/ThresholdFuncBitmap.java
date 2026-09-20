@@ -1,18 +1,23 @@
 package com.googlecode.javaewah.symmetric;
 
 import com.googlecode.javaewah.BitmapStorage;
+import com.googlecode.javaewah.aggregation.WordSink;
 
 import java.util.Arrays;
 
 /**
  * A threshold Boolean function returns true if the number of true values exceed
  * a threshold. It is a symmetric Boolean function.
- * 
+ *
  * This class implements an algorithm described in the following paper:
- * 
+ *
  * Owen Kaser and Daniel Lemire, Compressed bitmap indexes: beyond unions and intersections
  * <a href="http://arxiv.org/abs/1402.4466">http://arxiv.org/abs/1402.4466</a>
- * 
+ *
+ * The per-run decision skeleton is shared with the 32-bit variant through
+ * {@link #emit(WordSink, int, int)}; only the primitive 64-bit word operations
+ * remain in this class.
+ *
  * It is not thread safe: you should use one object per thread.
  *
  * @author Daniel Lemire
@@ -40,7 +45,15 @@ public final class ThresholdFuncBitmap extends UpdateableBitmapFunction {
     }
 
     @Override
-    public void dispatch(BitmapStorage out, int runBegin, int runEnd) {
+    public void dispatch(final BitmapStorage out, final int runBegin,
+                         final int runEnd) {
+        emit(new com.googlecode.javaewah.aggregation.BitmapStorageSink64(out),
+                runBegin, runEnd);
+    }
+
+    @Override
+    public void emit(final WordSink out, final int runBegin,
+                     final int runEnd) {
         final int runLength = runEnd - runBegin;
         if (this.hammingWeight >= this.min) {
             out.addStreamOfEmptyWords(true, runLength);
@@ -107,34 +120,37 @@ public final class ThresholdFuncBitmap extends UpdateableBitmapFunction {
         return threshold2buf(T, buf, bufUsed);//scancount
     }
 
-    private void orLiterals(final BitmapStorage out, final int runBegin, final int runLength) {
+    private void orLiterals(final WordSink out, final int runBegin,
+                            final int runLength) {
         for (int i = 0; i < runLength; ++i) {
             long w = 0;
-            for (EWAHPointer R : this.getLiterals()) {
-                w |= R.iterator.getLiteralWordAt(i + runBegin - R.beginOfRun());
+            for (final EWAHPointer r : this.getLiterals()) {
+                w |= r.iterator.getLiteralWordAt(i + runBegin - r.beginOfRun());
             }
             out.addWord(w);
         }
     }
 
-    private void andLiterals(final BitmapStorage out, final int runBegin, final int runLength) {
+    private void andLiterals(final WordSink out, final int runBegin,
+                             final int runLength) {
         for (int i = 0; i < runLength; ++i) {
             long w = ~0;
-            for (EWAHPointer R : this.getLiterals()) {
-                w &= R.iterator.getLiteralWordAt(i + runBegin - R.beginOfRun());
+            for (final EWAHPointer r : this.getLiterals()) {
+                w &= r.iterator.getLiteralWordAt(i + runBegin - r.beginOfRun());
             }
             out.addWord(w);
         }
     }
 
-    private void generalLiterals(final int deficit,
-                                       final BitmapStorage out, final int runBegin, final int runLength) {
+    private void generalLiterals(final int deficit, final WordSink out,
+                                 final int runBegin, final int runLength) {
         if (this.bufferUsed > this.buffers.length)
             this.buffers = Arrays.copyOf(this.buffers, 2 * this.bufferUsed);
         for (int i = 0; i < runLength; ++i) {
             int p = 0;
-            for (EWAHPointer R : this.getLiterals()) {
-                this.buffers[p++] = R.iterator.getLiteralWordAt(i + runBegin - R.beginOfRun());
+            for (final EWAHPointer r : this.getLiterals()) {
+                this.buffers[p++] = r.iterator.getLiteralWordAt(
+                        i + runBegin - r.beginOfRun());
             }
             out.addWord(threshold4(deficit, this.buffers, this.bufferUsed));
         }

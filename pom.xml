@@ -68,6 +68,10 @@
 		            <trimStackTrace>false</trimStackTrace>
                 <forkCount>3</forkCount>
                 <reuseForks>true</reuseForks>
+                <includes>
+                    <include>**/*Test.java</include>
+                    <include>**/*Test*.java</include>
+                </includes>
                 <argLine>-Xmx1024m</argLine>
             </configuration>
       </plugin>

@@ -1,10 +1,14 @@
 package com.googlecode.javaewah32;
 
 import com.googlecode.javaewah.CloneableIterator;
+import com.googlecode.javaewah.aggregation.AggregateOp;
+import com.googlecode.javaewah.aggregation.AggregationFactory32;
+import com.googlecode.javaewah.aggregation.BitmapStorageSink32;
+import com.googlecode.javaewah.aggregation.IntWordArray;
+import com.googlecode.javaewah.aggregation.PairMerge;
+import com.googlecode.javaewah.aggregation.RlwCursor32;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 
 /*
@@ -14,6 +18,11 @@ import java.util.LinkedList;
 
 /**
  * Set of helper functions to aggregate bitmaps.
+ *
+ * The aggregation state machines now live once in
+ * {@link com.googlecode.javaewah.aggregation}; this class is the width-specific
+ * 32-bit facade that wires the shared engine to {@link IteratingRLW32} and
+ * {@link BitmapStorage32}.
  */
 public final class IteratorAggregation32 {
 
@@ -73,10 +82,10 @@ public final class IteratorAggregation32 {
                 throw new CloneNotSupportedException();
             }
 
-			@Override
-			public void discardLiteralWords(int y) {
-				x.discardLiteralWords(y);				
-			}
+            @Override
+            public void discardLiteralWords(int y) {
+                x.discardLiteralWords(y);
+            }
         };
     }
 
@@ -107,7 +116,7 @@ public final class IteratorAggregation32 {
             return al[0];
         final LinkedList<IteratingRLW32> basell = new LinkedList<IteratingRLW32>();
         Collections.addAll(basell, al);
-        return new BufferedIterator32(new AndIt(basell, bufSize));
+        return AggregationFactory32.INSTANCE.newBufferedAnd(basell, bufSize);
     }
 
     /**
@@ -138,7 +147,7 @@ public final class IteratorAggregation32 {
 
         final LinkedList<IteratingRLW32> basell = new LinkedList<IteratingRLW32>();
         Collections.addAll(basell, al);
-        return new BufferedIterator32(new ORIt(basell, bufSize));
+        return AggregationFactory32.INSTANCE.newBufferedOr(basell, bufSize);
     }
 
     /**
@@ -169,7 +178,7 @@ public final class IteratorAggregation32 {
 
         final LinkedList<IteratingRLW32> basell = new LinkedList<IteratingRLW32>();
         Collections.addAll(basell, al);
-        return new BufferedIterator32(new XORIt(basell, bufSize));
+        return AggregationFactory32.INSTANCE.newBufferedXor(basell, bufSize);
     }
 
     /**
@@ -180,11 +189,8 @@ public final class IteratorAggregation32 {
      */
     protected static void dischargeAsEmpty(final BitmapStorage32 container,
                                            final IteratingRLW32 i) {
-        while (i.size() > 0) {
-            container.addStreamOfEmptyWords(false, i.size());
-            i.next();
-
-        }
+        PairMerge.dischargeAsEmpty(new BitmapStorageSink32(container),
+                new RlwCursor32(i));
     }
 
     /**
@@ -197,30 +203,16 @@ public final class IteratorAggregation32 {
      */
     protected static int discharge(final BitmapStorage32 container,
                                    IteratingRLW32 i, int max) {
-        int counter = 0;
-        while (i.size() > 0 && counter < max) {
-            int l1 = i.getRunningLength();
-            if (l1 > 0) {
-                if (l1 + counter > max)
-                    l1 = max - counter;
-                container.addStreamOfEmptyWords(
-                        i.getRunningBit(), l1);
-                counter += l1;
-            }
-            int l = i.getNumberOfLiteralWords();
-            if (l + counter > max)
-                l = max - counter;
-            for (int k = 0; k < l; ++k) {
-                container.addWord(i.getLiteralWordAt(k));
-            }
-            counter += l;
-            i.discardFirstWords(l + l1);
-        }
-        return counter;
+        return (int) PairMerge.discharge(new BitmapStorageSink32(container),
+                new RlwCursor32(i), max, false);
     }
 
     /**
-     * Write out up to max negated words, returns how many were written
+     * Write out up to max negated words, returns how many were written.
+     *
+     * Historically the 32-bit implementation copied the words unchanged
+     * (and reported the fill bit unchanged); the shared state machine keeps
+     * that exact behavior with {@code negate=false}.
      *
      * @param container target for writes
      * @param i         source of data
@@ -229,116 +221,22 @@ public final class IteratorAggregation32 {
      */
     protected static int dischargeNegated(final BitmapStorage32 container,
                                           IteratingRLW32 i, int max) {
-        int counter = 0;
-        while (i.size() > 0 && counter < max) {
-            int l1 = i.getRunningLength();
-            if (l1 > 0) {
-                if (l1 + counter > max)
-                    l1 = max - counter;
-                container.addStreamOfEmptyWords(i.getRunningBit(), l1);
-                counter += l1;
-            }
-            int l = i.getNumberOfLiteralWords();
-            if (l + counter > max)
-                l = max - counter;
-            for (int k = 0; k < l; ++k) {
-                container.addWord(i.getLiteralWordAt(k));
-            }
-            counter += l;
-            i.discardFirstWords(l + l1);
-        }
-        return counter;
+        return (int) PairMerge.discharge(new BitmapStorageSink32(container),
+                new RlwCursor32(i), max, false);
     }
 
     static void andToContainer(final BitmapStorage32 container,
                                int desiredrlwcount, final IteratingRLW32 rlwi,
                                IteratingRLW32 rlwj) {
-        while ((rlwi.size() > 0) && (rlwj.size() > 0)
-                && (desiredrlwcount-- > 0)) {
-            while ((rlwi.getRunningLength() > 0)
-                    || (rlwj.getRunningLength() > 0)) {
-                final boolean i_is_prey = rlwi
-                        .getRunningLength() < rlwj
-                        .getRunningLength();
-                final IteratingRLW32 prey = i_is_prey ? rlwi
-                        : rlwj;
-                final IteratingRLW32 predator = i_is_prey ? rlwj
-                        : rlwi;
-                if (!predator.getRunningBit()) {
-                    container.addStreamOfEmptyWords(false,
-                            predator.getRunningLength());
-                    prey.discardFirstWords(predator
-                            .getRunningLength());
-                    predator.discardFirstWords(predator
-                            .getRunningLength());
-                } else {
-                    final int index = discharge(container,
-                            prey,
-                            predator.getRunningLength());
-                    container.addStreamOfEmptyWords(false,
-                            predator.getRunningLength()
-                                    - index
-                    );
-                    predator.discardFirstWords(predator
-                            .getRunningLength());
-                }
-            }
-            final int nbre_literal = Math.min(
-                    rlwi.getNumberOfLiteralWords(),
-                    rlwj.getNumberOfLiteralWords());
-            if (nbre_literal > 0) {
-                desiredrlwcount -= nbre_literal;
-                for (int k = 0; k < nbre_literal; ++k)
-                    container.addWord(rlwi.getLiteralWordAt(k)
-                            & rlwj.getLiteralWordAt(k));
-                rlwi.discardFirstWords(nbre_literal);
-                rlwj.discardFirstWords(nbre_literal);
-            }
-        }
+        PairMerge.andToContainer(new BitmapStorageSink32(container),
+                desiredrlwcount, new RlwCursor32(rlwi),
+                new RlwCursor32(rlwj));
     }
 
     static void andToContainer(final BitmapStorage32 container,
                                final IteratingRLW32 rlwi, IteratingRLW32 rlwj) {
-        while ((rlwi.size() > 0) && (rlwj.size() > 0)) {
-            while ((rlwi.getRunningLength() > 0)
-                    || (rlwj.getRunningLength() > 0)) {
-                final boolean i_is_prey = rlwi
-                        .getRunningLength() < rlwj
-                        .getRunningLength();
-                final IteratingRLW32 prey = i_is_prey ? rlwi
-                        : rlwj;
-                final IteratingRLW32 predator = i_is_prey ? rlwj
-                        : rlwi;
-                if (!predator.getRunningBit()) {
-                    container.addStreamOfEmptyWords(false,
-                            predator.getRunningLength());
-                    prey.discardFirstWords(predator
-                            .getRunningLength());
-                    predator.discardFirstWords(predator
-                            .getRunningLength());
-                } else {
-                    final int index = discharge(container,
-                            prey,
-                            predator.getRunningLength());
-                    container.addStreamOfEmptyWords(false,
-                            predator.getRunningLength()
-                                    - index
-                    );
-                    predator.discardFirstWords(predator
-                            .getRunningLength());
-                }
-            }
-            final int nbre_literal = Math.min(
-                    rlwi.getNumberOfLiteralWords(),
-                    rlwj.getNumberOfLiteralWords());
-            if (nbre_literal > 0) {
-                for (int k = 0; k < nbre_literal; ++k)
-                    container.addWord(rlwi.getLiteralWordAt(k)
-                            & rlwj.getLiteralWordAt(k));
-                rlwi.discardFirstWords(nbre_literal);
-                rlwj.discardFirstWords(nbre_literal);
-            }
-        }
+        PairMerge.andToContainer(new BitmapStorageSink32(container),
+                new RlwCursor32(rlwi), new RlwCursor32(rlwj));
     }
 
     /**
@@ -353,170 +251,36 @@ public final class IteratorAggregation32 {
     public static void xorToContainer(final BitmapStorage32 container,
                                       int desiredrlwcount, final IteratingRLW32 rlwi,
                                       IteratingRLW32 rlwj) {
-        while ((rlwi.size() > 0) && (rlwj.size() > 0)
-                && (desiredrlwcount-- > 0)) {
-            while ((rlwi.getRunningLength() > 0)
-                    || (rlwj.getRunningLength() > 0)) {
-                final boolean i_is_prey = rlwi
-                        .getRunningLength() < rlwj
-                        .getRunningLength();
-                final IteratingRLW32 prey = i_is_prey ? rlwi
-                        : rlwj;
-                final IteratingRLW32 predator = i_is_prey ? rlwj
-                        : rlwi;
-                if (!predator.getRunningBit()) {
-                    int index = discharge(container, prey,
-                            predator.getRunningLength());
-                    container.addStreamOfEmptyWords(false,
-                            predator.getRunningLength()
-                                    - index
-                    );
-                    predator.discardFirstWords(predator
-                            .getRunningLength());
-                } else {
-                    int index = dischargeNegated(container,
-                            prey,
-                            predator.getRunningLength());
-                    container.addStreamOfEmptyWords(true,
-                            predator.getRunningLength()
-                                    - index
-                    );
-                    predator.discardFirstWords(predator
-                            .getRunningLength());
-                }
-            }
-            final int nbre_literal = Math.min(
-                    rlwi.getNumberOfLiteralWords(),
-                    rlwj.getNumberOfLiteralWords());
-            if (nbre_literal > 0) {
-                desiredrlwcount -= nbre_literal;
-                for (int k = 0; k < nbre_literal; ++k)
-                    container.addWord(rlwi.getLiteralWordAt(k)
-                            ^ rlwj.getLiteralWordAt(k));
-                rlwi.discardFirstWords(nbre_literal);
-                rlwj.discardFirstWords(nbre_literal);
-            }
-        }
+        PairMerge.xorToContainer(new BitmapStorageSink32(container),
+                desiredrlwcount, new RlwCursor32(rlwi),
+                new RlwCursor32(rlwj), false);
     }
 
     protected static int inplaceor(int[] bitmap, IteratingRLW32 i) {
-        int pos = 0;
-        int s;
-        while ((s = i.size()) > 0) {
-            if (pos + s < bitmap.length) {
-                final int L = i.getRunningLength();
-                if (i.getRunningBit())
-                    java.util.Arrays.fill(bitmap, pos, pos
-                            + L, ~0);
-                pos += L;
-                final int LR = i.getNumberOfLiteralWords();
-                for (int k = 0; k < LR; ++k)
-                    bitmap[pos++] |= i.getLiteralWordAt(k);
-                if (!i.next()) {
-                    return pos;
-                }
-            } else {
-                int howmany = bitmap.length - pos;
-                int l = i.getRunningLength();
-                if (pos + l > bitmap.length) {
-                    if (i.getRunningBit()) {
-                        java.util.Arrays.fill(bitmap, pos, bitmap.length, ~0);
-                    }
-                    i.discardFirstWords(howmany);
-                    return bitmap.length;
-                }
-                if (i.getRunningBit())
-                    java.util.Arrays.fill(bitmap, pos, pos + l, ~0);
-                pos += l;
-                for (int k = 0; pos < bitmap.length; ++k)
-                    bitmap[pos++] |= i.getLiteralWordAt(k);
-                i.discardFirstWords(howmany);
-                return pos;
-            }
-        }
-        return pos;
+        return inplace(bitmap, i, AggregateOp.OR);
     }
 
     protected static int inplacexor(int[] bitmap, IteratingRLW32 i) {
-        int pos = 0;
-        int s;
-        while ((s = i.size()) > 0) {
-            if (pos + s < bitmap.length) {
-                final int L = i.getRunningLength();
-                if (i.getRunningBit()) {
-                    for (int k = pos; k < pos + L; ++k)
-                        bitmap[k] = ~bitmap[k];
-                }
-                pos += L;
-                final int LR = i.getNumberOfLiteralWords();
-                for (int k = 0; k < LR; ++k)
-                    bitmap[pos++] ^= i.getLiteralWordAt(k);
-                if (!i.next()) {
-                    return pos;
-                }
-            } else {
-                int howMany = bitmap.length - pos;
-                int l = i.getRunningLength();
-                if (pos + l > bitmap.length) {
-                    if (i.getRunningBit()) {
-                        for (int k = pos; k < bitmap.length; ++k)
-                            bitmap[k] = ~bitmap[k];
-                    }
-                    i.discardFirstWords(howMany);
-                    return bitmap.length;
-                }
-                if (i.getRunningBit())
-                    for (int k = pos; k < pos + l; ++k)
-                        bitmap[k] = ~bitmap[k];
-                pos += l;
-                for (int k = 0; pos < bitmap.length; ++k)
-                    bitmap[pos++] ^= i.getLiteralWordAt(k);
-                i.discardFirstWords(howMany);
-                return pos;
-            }
-        }
-        return pos;
+        return inplace(bitmap, i, AggregateOp.XOR);
     }
 
     protected static int inplaceand(int[] bitmap, IteratingRLW32 i) {
-        int pos = 0;
-        int s;
-        while ((s = i.size()) > 0) {
-            if (pos + s < bitmap.length) {
-                final int L = i.getRunningLength();
-                if (!i.getRunningBit()) {
-                    for (int k = pos; k < pos + L; ++k)
-                        bitmap[k] = 0;
-                }
-                pos += L;
-                final int LR = i.getNumberOfLiteralWords();
-                for (int k = 0; k < LR; ++k)
-                    bitmap[pos++] &= i.getLiteralWordAt(k);
-                if (!i.next()) {
-                    return pos;
-                }
-            } else {
-                int howMany = bitmap.length - pos;
-                int l = i.getRunningLength();
-                if (pos + l > bitmap.length) {
-                    if (!i.getRunningBit()) {
-                        for (int k = pos; k < bitmap.length; ++k)
-                            bitmap[k] = 0;
-                    }
-                    i.discardFirstWords(howMany);
-                    return bitmap.length;
-                }
-                if (!i.getRunningBit())
-                    for (int k = pos; k < pos + l; ++k)
-                        bitmap[k] = 0;
-                pos += l;
-                for (int k = 0; pos < bitmap.length; ++k)
-                    bitmap[pos++] &= i.getLiteralWordAt(k);
-                i.discardFirstWords(howMany);
-                return pos;
-            }
+        return inplace(bitmap, i, AggregateOp.AND);
+    }
+
+    private static int inplace(final int[] bitmap, final IteratingRLW32 i,
+                               final AggregateOp op) {
+        switch (op) {
+            case OR:
+                return com.googlecode.javaewah.aggregation.InPlaceOps32.or(
+                        bitmap, i);
+            case XOR:
+                return com.googlecode.javaewah.aggregation.InPlaceOps32.xor(
+                        bitmap, i);
+            default:
+                return com.googlecode.javaewah.aggregation.InPlaceOps32.and(
+                        bitmap, i);
         }
-        return pos;
     }
 
     /**
@@ -524,152 +288,5 @@ public final class IteratorAggregation32 {
      * expense of memory.
      */
     public static final int DEFAULT_MAX_BUF_SIZE = 65536;
-
-}
-
-class ORIt implements CloneableIterator<EWAHIterator32> {
-    final EWAHCompressedBitmap32 buffer = new EWAHCompressedBitmap32();
-    final int[] hardBitmap;
-    final LinkedList<IteratingRLW32> ll;
-
-    ORIt(LinkedList<IteratingRLW32> basell, final int bufSize) {
-        this.ll = basell;
-        this.hardBitmap = new int[bufSize];
-    }
-
-    @Override
-    public XORIt clone() throws CloneNotSupportedException {
-        XORIt answer = (XORIt) super.clone();
-        answer.buffer = this.buffer.clone();
-        answer.hardbitmap = this.hardBitmap.clone();
-        answer.ll = (LinkedList<IteratingRLW32>) this.ll.clone();
-        return answer;
-    }
-
-    @Override
-    public boolean hasNext() {
-        return !this.ll.isEmpty();
-    }
-
-    @Override
-    public EWAHIterator32 next() {
-        this.buffer.clear();
-        int effective = 0;
-        Iterator<IteratingRLW32> i = this.ll.iterator();
-        while (i.hasNext()) {
-            IteratingRLW32 rlw = i.next();
-            if (rlw.size() > 0) {
-                int eff = IteratorAggregation32.inplaceor(
-                        this.hardBitmap, rlw);
-                if (eff > effective)
-                    effective = eff;
-            } else
-                i.remove();
-        }
-        for (int k = 0; k < effective; ++k)
-            this.buffer.addWord(this.hardBitmap[k]);
-        Arrays.fill(this.hardBitmap, 0);
-        return this.buffer.getEWAHIterator();
-    }
-}
-
-class XORIt implements CloneableIterator<EWAHIterator32> {
-    EWAHCompressedBitmap32 buffer = new EWAHCompressedBitmap32();
-    int[] hardbitmap;
-    LinkedList<IteratingRLW32> ll;
-
-    XORIt(LinkedList<IteratingRLW32> basell, final int bufSize) {
-        this.ll = basell;
-        this.hardbitmap = new int[bufSize];
-
-    }
-
-    @Override
-    public XORIt clone() throws CloneNotSupportedException {
-        XORIt answer = (XORIt) super.clone();
-        answer.buffer = this.buffer.clone();
-        answer.hardbitmap = this.hardbitmap.clone();
-        answer.ll = (LinkedList<IteratingRLW32>) this.ll.clone();
-        return answer;
-    }
-
-    @Override
-    public boolean hasNext() {
-        return !this.ll.isEmpty();
-    }
-
-    @Override
-    public EWAHIterator32 next() {
-        this.buffer.clear();
-        int effective = 0;
-        Iterator<IteratingRLW32> i = this.ll.iterator();
-        while (i.hasNext()) {
-            IteratingRLW32 rlw = i.next();
-            if (rlw.size() > 0) {
-                int eff = IteratorAggregation32.inplacexor(
-                        this.hardbitmap, rlw);
-                if (eff > effective)
-                    effective = eff;
-            } else
-                i.remove();
-        }
-        for (int k = 0; k < effective; ++k)
-            this.buffer.addWord(this.hardbitmap[k]);
-        Arrays.fill(this.hardbitmap, 0);
-        return this.buffer.getEWAHIterator();
-    }
-}
-
-class AndIt implements CloneableIterator<EWAHIterator32> {
-    EWAHCompressedBitmap32 buffer = new EWAHCompressedBitmap32();
-    LinkedList<IteratingRLW32> ll;
-    final int bufferSize;
-
-    public AndIt(LinkedList<IteratingRLW32> basell, final int bufSize) {
-        this.ll = basell;
-        this.bufferSize = bufSize;
-    }
-
-    @Override
-    public boolean hasNext() {
-        return !this.ll.isEmpty();
-    }
-
-    @Override
-    public AndIt clone() throws CloneNotSupportedException {
-        AndIt answer = (AndIt) super.clone();
-        answer.buffer = this.buffer.clone();
-        answer.ll = (LinkedList<IteratingRLW32>) this.ll.clone();
-        return answer;
-    }
-
-    @Override
-    public EWAHIterator32 next() {
-        this.buffer.clear();
-        IteratorAggregation32.andToContainer(this.buffer,
-                this.bufferSize * this.ll.size(), this.ll.get(0),
-                this.ll.get(1));
-        if (this.ll.size() > 2) {
-            Iterator<IteratingRLW32> i = this.ll.iterator();
-            i.next();
-            i.next();
-            EWAHCompressedBitmap32 tmpbuffer = new EWAHCompressedBitmap32();
-            while (i.hasNext() && this.buffer.sizeInBytes() > 0) {
-                IteratorAggregation32
-                        .andToContainer(tmpbuffer,
-                                this.buffer.getIteratingRLW(),
-                                i.next());
-                this.buffer.swap(tmpbuffer);
-                tmpbuffer.clear();
-            }
-        }
-        for (IteratingRLW32 aLl : this.ll) {
-            if (aLl.size() == 0) {
-                this.ll.clear();
-                break;
-            }
-        }
-        return this.buffer.getEWAHIterator();
-    }
 
 }
